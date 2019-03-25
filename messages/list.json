@@ -1,0 +1,5 @@
+{
+  "commandDescription": "List ApexLog entries for an org and parameters",
+  "errorNoOrgResults": "No results found for the org '%s'."
+  
+}

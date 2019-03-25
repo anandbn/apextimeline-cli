@@ -1,0 +1,68 @@
+{
+  "name": "apexlogparser",
+  "description": "A Force CLI plugin for parsing apex logs",
+  "version": "0.0.1",
+  "author": "Anand Narasimhan @anandbn",
+  "bugs": "https://github.com/anandbn/apexlogparser/issues",
+  "dependencies": {
+    "@oclif/command": "1",
+    "@oclif/config": "1",
+    "@oclif/errors": "1",
+    "@salesforce/command": "^1.0.1",
+    "@salesforce/core": "^1.0.1",
+    "antlr4ts": "^0.5.0-alpha.3",
+    "axios": "^0.18.0",
+    "tslib": "1"
+  },
+  "devDependencies": {
+    "@oclif/dev-cli": "^1",
+    "@oclif/plugin-help": "^2",
+    "@oclif/test": "^1",
+    "@salesforce/dev-config": "^1.1.4",
+    "@types/chai": "^4",
+    "@types/mocha": "^5",
+    "@types/node": "^10",
+    "antlr4ts-cli": "^0.5.0-alpha.3",
+    "chai": "^4",
+    "globby": "^8",
+    "mocha": "^5",
+    "nyc": "^13",
+    "sinon": "5",
+    "ts-node": "^7",
+    "typescript": "^3.0"
+  },
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "files": [
+    "/lib",
+    "/messages",
+    "/npm-shrinkwrap.json",
+    "/oclif.manifest.json"
+  ],
+  "homepage": "https://github.com/anandbn/apexlogparser",
+  "keywords": [
+    "sfdx-plugin"
+  ],
+  "license": "MIT",
+  "oclif": {
+    "commands": "./lib/commands",
+    "topics": {
+      "hello": {
+        "description": "Commands to say hello."
+      }
+    },
+    "devPlugins": [
+      "@oclif/plugin-help"
+    ]
+  },
+  "repository": "anandbn/apexlogparser",
+  "scripts": {
+    "postpack": "rm -f oclif.manifest.json npm-shrinkwrap.json",
+    "posttest": "tslint -p test -t stylish",
+    "prepare": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme && npm shrinkwrap",
+    "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\"",
+    "version": "oclif-dev readme && git add README.md",
+    "antlr": "./node_modules/.bin/antlr4ts -visitor src/utils/soql-parser/SOQL.g4 -o ."
+  }
+}

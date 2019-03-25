@@ -1,0 +1,5 @@
+{
+  "commandDescription": "Parse a logfile or Logid from an org",
+  "errorInvalidParams": "'logid' (-i) or 'logfile' (-f) are required for this command"
+  
+}
