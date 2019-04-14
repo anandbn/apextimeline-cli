@@ -4,6 +4,7 @@ import DMLOperation from './operations/DMLOperation';
 import ExecutionOperation from './operations/ExecutionOperation';
 import Operation from './operations/Operation'
 import TriggerExecutionOperation from './operations/TriggerExecutionOperation';
+import CalloutOperation from "./operations/CalloutOperation";
 
 export default class OperationFactory{
 
@@ -18,6 +19,8 @@ export default class OperationFactory{
                 return new DMLOperation(execStartTime,tokens);
             }else if(tokens[1].startsWith("EXECUTION_")){
                 return new ExecutionOperation(execStartTime,tokens);
+            }else if(tokens[1].startsWith("CALLOUT")){
+                return new CalloutOperation(execStartTime,tokens);
             }else if(tokens[1].startsWith("CODE_UNIT_")){
                 //Check if this is a trigger
                 if(tokens[tokens.length-1].indexOf("trigger")>-1){

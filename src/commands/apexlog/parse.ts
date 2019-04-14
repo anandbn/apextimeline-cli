@@ -14,6 +14,8 @@ import { SOQLLexer } from "../../utils/soql-parser/SOQLLexer";
 
 import fs =require('fs');
 import { ParseTree } from 'antlr4ts/tree/ParseTree';
+import MethodOperation from '../../utils/operations/MethodOperation';
+import CalloutOperation from '../../utils/operations/CalloutOperation';
 
 // Initialize Messages with the current plugin directory
 core.Messages.importMessagesDirectory(__dirname);
@@ -27,7 +29,7 @@ export default class Parse extends SfdxCommand {
     public static description = messages.getMessage('commandDescription');
     private static ALL_SUMMARY_COLS = {
         columns: [
-            { key: 'type', label: 'DB Operation Type' },
+            { key: 'type', label: 'Operation Type' },
             { key: 'count', label: '# of operations' },
             { key: 'ellapsedTimeMillis', label: 'Total Time (ms)' }
 
@@ -42,7 +44,27 @@ export default class Parse extends SfdxCommand {
 
         ]
     };
-        
+
+    private static APEX_SUMMARY_COLS = {
+        columns: [
+            { key: 'className', label: 'Apex Class' },
+            { key: 'methodName', label: 'Method' },
+            { key: 'elapsedTime', label: 'Total Time (ms)' }
+
+        ]
+    };
+
+    private static CALLOUT_SUMMARY_COLS = {
+        columns: [
+            { key: 'httpMethod', label: 'HTTP Method' },
+            { key: 'statusCode', label: 'HTTP Status' },
+            { key: 'statusMsg', label: 'HTTP Status Message' },
+            { key: 'elapsedTime', label: 'Total Time (ms)' },
+            { key: 'url', label: 'Endpoint Url' },
+
+        ]
+    };
+         
     public static examples = [
         `$ sfdx apexlog:parse --targetusername myOrg@example.com 
         `,
@@ -87,6 +109,10 @@ export default class Parse extends SfdxCommand {
             this.result.tableColumnData = Parse.ALL_SUMMARY_COLS;
         }else if(this.flags.output === "DB"){
             this.result.tableColumnData = Parse.DB_SUMMARY_COLS;
+        }else if(this.flags.output === "APEX"){
+            this.result.tableColumnData = Parse.APEX_SUMMARY_COLS;
+        }else if(this.flags.output === "CALLOUT"){
+            this.result.tableColumnData = Parse.CALLOUT_SUMMARY_COLS;
 
         }
         
@@ -121,7 +147,9 @@ export default class Parse extends SfdxCommand {
         let summary = this.summarizeResults(parseResults);
         let dbSummary = {
             summary: new Map(),
-            dbOperations: new Array()
+            dbOperations: new Array(),
+            apexOperations: new Array(),
+            calloutOperations: new Array()
         };
         if (summary) {
             for (let i = 0; i < summary.length; i++) {
@@ -180,6 +208,43 @@ export default class Parse extends SfdxCommand {
                         "rowCount": summary[i].rowCount,
                         "elapsedTime": summary[i].getElapsedMillis()
                     });
+                } else if (summary[i] instanceof MethodOperation) {
+                    let theSmry = dbSummary.summary.get("Apex");
+                    if (!theSmry) {
+                        theSmry = {
+                            "type": "Apex (DB + Apex + Callouts)",
+                            "count": 0,
+                            "ellapsedTimeMillis": 0
+                        }
+                    }
+                    theSmry.count++;
+                    theSmry.ellapsedTimeMillis += summary[i].getElapsedMillis();
+                    dbSummary.summary.set("Apex", theSmry);
+                    dbSummary.apexOperations.push({
+                        "className":summary[i].className?summary[i].className:'UNKNOWN',
+                        "methodName":summary[i].methodName?summary[i].methodName:'UNKNOWN',
+                        "elapsedTime": summary[i].getElapsedMillis()
+                    });                    
+                } else if (summary[i] instanceof CalloutOperation) {
+                    let theSmry = dbSummary.summary.get("Callouts");
+                    if (!theSmry) {
+                        theSmry = {
+                            "type": "Callouts",
+                            "count": 0,
+                            "ellapsedTimeMillis": 0
+                        }
+                    }
+                    theSmry.count++;
+                    theSmry.ellapsedTimeMillis += summary[i].getElapsedMillis();
+                    dbSummary.summary.set("Callouts", theSmry);
+                    dbSummary.calloutOperations.push({
+                        "url":summary[i].url,
+                        "method":summary[i].httpMethod,
+                        "statusMsg":summary[i].statusMsg,
+                        "statusCode":summary[i].statusCode,
+                        "elapsedTime": summary[i].getElapsedMillis()
+                    });  
+                                      
                 }
             }
         }
@@ -187,6 +252,10 @@ export default class Parse extends SfdxCommand {
             return Array.from(dbSummary.dbOperations);
         }else if(this.flags.output === "SUMMARY"){
             return Array.from(dbSummary.summary.values());
+        }else if(this.flags.output === "APEX"){
+            return Array.from(dbSummary.apexOperations);
+        }else if(this.flags.output === "CALLOUT"){
+            return Array.from(dbSummary.calloutOperations);
         }
         
        
@@ -196,6 +265,8 @@ export default class Parse extends SfdxCommand {
         let smryResults = new Array();
         for (let i = 0; i < parseResults.length; i++) {
             this.extractDatabaseOperations(parseResults[i], smryResults);
+            this.extractApexOperations(parseResults[i], smryResults);
+            this.extractCalloutOperations(parseResults[i], smryResults);
         }
         return smryResults;
     }
@@ -207,6 +278,30 @@ export default class Parse extends SfdxCommand {
         if (operation.hasOperations() && operation.operations && operation.operations.length > 0) {
             for (let i = 0; i < operation.operations.length; i++) {
                 this.extractDatabaseOperations(operation.operations[i], smryResults);
+            }
+        }
+
+    }
+
+
+    private extractApexOperations(operation: Operation, smryResults: Array<Operation>) {
+        if (operation instanceof MethodOperation) {
+            smryResults.push(operation);
+        }
+        if (operation.hasOperations() && operation.operations && operation.operations.length > 0) {
+            for (let i = 0; i < operation.operations.length; i++) {
+                this.extractApexOperations(operation.operations[i], smryResults);
+            }
+        }
+
+    }
+    private extractCalloutOperations(operation: Operation, smryResults: Array<Operation>) {
+        if (operation instanceof CalloutOperation) {
+            smryResults.push(operation);
+        }
+        if (operation.hasOperations() && operation.operations && operation.operations.length > 0) {
+            for (let i = 0; i < operation.operations.length; i++) {
+                this.extractCalloutOperations(operation.operations[i], smryResults);
             }
         }
 

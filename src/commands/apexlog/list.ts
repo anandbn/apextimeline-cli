@@ -58,7 +58,8 @@ export default class List extends SfdxCommand {
         rowlimit: flags.integer({ char: 'r', description: 'Maximum rows to display', default: 10 }),
         sort: flags.string({ char: 's', description: 'Sorting order based on LastModifiedDate', default: 'desc' }),
         loguser: flags.string({ char: 'l', description: 'Name of user that you want to filter by'}),
-        operation: flags.string({ char: 'o', description: 'Operation (Apex/VF/Aura/Trigger/Class) etc. to filter by'})
+        operation: flags.string({ char: 'o', description: 'Operation (Apex/VF/Aura/Trigger/Class) etc. to filter by'}),
+        duration: flags.integer({ char: 'd', description: 'Threshold (in ms) to return logs that are >= to this duration', default:0})
 
     };
 
@@ -98,7 +99,7 @@ export default class List extends SfdxCommand {
         // this.org is guaranteed because requiresUsername=true, as opposed to supportsUsername
         const conn = this.org.getConnection();
         let query = 'SELECT Application,DurationMilliseconds,Id,LastModifiedDate,Location,LogLength,LogUser.Name,Operation,Request,StartTime,Status FROM ApexLog';
-        if(this.flags.loguser || this.flags.operation){
+        if(this.flags.loguser || this.flags.operation || this.flags.duration){
             query +=` where `;
             let criteria = new Array();
 
@@ -108,12 +109,15 @@ export default class List extends SfdxCommand {
             if(this.flags.operation){
                 criteria.push(`Operation like '${this.flags.operation}'`);
             }
+            if(this.flags.duration){
+                criteria.push(`DurationMilliseconds >= ${this.flags.duration}`);
+            }
             query +=criteria.join(' and ');
         }
         query+= ` order by LastModifiedDate ${this.flags.sort}` ;
         query+=` limit ${this.flags.rowlimit}`;
 
-        //this.ux.log(`Executing query : ${query}`);
+        this.ux.log(`Executing query : ${query}`);
         // The type we are querying for
         interface ApexLog {
             Application: string,

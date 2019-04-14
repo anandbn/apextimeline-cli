@@ -22,7 +22,7 @@ $ npm install -g apexlogparser
 $ apexlogparser COMMAND
 running command...
 $ apexlogparser (-v|--version|version)
-apexlogparser/0.0.1 darwin-x64 node-v8.15.1
+apexlogparser/0.0.1 darwin-x64 node-v10.15.3
 $ apexlogparser --help [COMMAND]
 USAGE
   $ apexlogparser COMMAND

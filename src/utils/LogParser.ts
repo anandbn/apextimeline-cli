@@ -3,6 +3,7 @@ import OperationFactory from './OperationFactory';
 import EntryOrExit from './operations/EntryOrExit';
 import DatabaseOperation from './operations/DatabaseOperation';
 import TriggerExecutionOperation from './operations/TriggerExecutionOperation';
+import CalloutOperation from './operations/CalloutOperation';
 
 export default class LogParser {
 
@@ -30,6 +31,11 @@ export default class LogParser {
                         if (currOp.eventType === "SOQL_EXECUTE" && currOp.eventSubType == EntryOrExit[EntryOrExit.END]) {
                             (<DatabaseOperation>prevOp).setRowCount((<DatabaseOperation>currOp).getRowCount());
                         }
+                        if (currOp.eventType === "CALLOUT" && currOp.eventSubType == EntryOrExit[EntryOrExit.RESPONSE]) {
+                            (<CalloutOperation>prevOp).setStatusCode((<CalloutOperation>currOp).getStatusCode());
+                            (<CalloutOperation>prevOp).setStatusMsg((<CalloutOperation>currOp).getStatusMsg());
+                        }
+
                         if (prevOp.getElapsedMillis() >= timeThreshold ||
                             prevOp.hasOperations() ||
                             prevOp.eventType === "SOQL_EXECUTE" ||
